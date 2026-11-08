@@ -14,31 +14,32 @@ _VIRTUAL = [
 ]
 
 _TIER_BY_RESOURCE = {
-    "edge-lb": "edge", "nat-gateway": "edge",
-    "web-prod-1": "web", "web-prod-2": "web", "staging-app-1": "web",
-    "api-prod-1": "application", "api-prod-2": "application", "batch-worker-1": "application",
-    "analytics-xl": "application", "legacy-ftp": "application",
-    "k8s-node-1": "application", "k8s-node-2": "application", "k8s-node-3": "application",
-    "orders-db": "data", "orders-db-replica": "data", "cache-prod": "data",
-    "assets-bucket": "storage", "backups-bucket": "storage", "orphan-volume-07": "storage",
+    "alb-public-prod": "edge", "nat-gw-prod": "edge",
+    "prod-web-01": "web", "prod-web-02": "web", "staging-app-01": "web",
+    "prod-api-01": "application", "prod-api-02": "application", "prod-batch-01": "application",
+    "prod-etl-01": "application", "dev-sftp-legacy": "application",
+    "k8s-prod-node-01": "application", "k8s-prod-node-02": "application", "k8s-prod-node-03": "application",
+    "rds-orders-primary": "data", "rds-orders-replica": "data", "redis-sessions-prod": "data",
+    "s3-assets-prod": "storage", "s3-backups-prod": "storage", "ebs-vol-0a7f3c91": "storage",
 }
 
 # source, target, relationship
 _EDGES = [
-    ("internet", "edge-lb", "HTTPS 443"),
-    ("edge-lb", "web-prod-1", "HTTP"), ("edge-lb", "web-prod-2", "HTTP"), ("edge-lb", "k8s-cluster", "Ingress"),
-    ("web-prod-1", "api-prod-1", "REST"), ("web-prod-1", "api-prod-2", "REST"),
-    ("web-prod-2", "api-prod-1", "REST"), ("web-prod-2", "api-prod-2", "REST"),
-    ("web-prod-1", "assets-bucket", "Static assets"), ("web-prod-2", "assets-bucket", "Static assets"),
-    ("k8s-cluster", "k8s-node-1", "Schedules"), ("k8s-cluster", "k8s-node-2", "Schedules"), ("k8s-cluster", "k8s-node-3", "Schedules"),
-    ("k8s-cluster", "orders-db", "SQL"), ("k8s-cluster", "cache-prod", "Redis"),
-    ("api-prod-1", "orders-db", "SQL"), ("api-prod-2", "orders-db", "SQL"),
-    ("api-prod-1", "cache-prod", "Redis"), ("api-prod-2", "cache-prod", "Redis"),
-    ("orders-db", "orders-db-replica", "Replication"), ("orders-db", "backups-bucket", "Nightly backup"),
-    ("batch-worker-1", "orders-db-replica", "Read queries"), ("batch-worker-1", "backups-bucket", "Exports"),
-    ("analytics-xl", "orders-db-replica", "Read queries"),
-    ("batch-worker-1", "nat-gateway", "Egress"), ("api-prod-1", "nat-gateway", "Egress"), ("api-prod-2", "nat-gateway", "Egress"),
-    ("nat-gateway", "internet", "Outbound"),
+    ("internet", "alb-public-prod", "HTTPS 443"),
+    ("alb-public-prod", "prod-web-01", "HTTP"), ("alb-public-prod", "prod-web-02", "HTTP"), ("alb-public-prod", "k8s-cluster", "Ingress"),
+    ("prod-web-01", "prod-api-01", "REST"), ("prod-web-01", "prod-api-02", "REST"),
+    ("prod-web-02", "prod-api-01", "REST"), ("prod-web-02", "prod-api-02", "REST"),
+    ("prod-web-01", "s3-assets-prod", "Static assets"), ("prod-web-02", "s3-assets-prod", "Static assets"),
+    ("k8s-cluster", "k8s-prod-node-01", "Schedules"), ("k8s-cluster", "k8s-prod-node-02", "Schedules"),
+    ("k8s-cluster", "k8s-prod-node-03", "Schedules"),
+    ("k8s-cluster", "rds-orders-primary", "SQL"), ("k8s-cluster", "redis-sessions-prod", "Redis"),
+    ("prod-api-01", "rds-orders-primary", "SQL"), ("prod-api-02", "rds-orders-primary", "SQL"),
+    ("prod-api-01", "redis-sessions-prod", "Redis"), ("prod-api-02", "redis-sessions-prod", "Redis"),
+    ("rds-orders-primary", "rds-orders-replica", "Replication"), ("rds-orders-primary", "s3-backups-prod", "Nightly backup"),
+    ("prod-batch-01", "rds-orders-replica", "Read queries"), ("prod-batch-01", "s3-backups-prod", "Exports"),
+    ("prod-etl-01", "rds-orders-replica", "Read queries"),
+    ("prod-batch-01", "nat-gw-prod", "Egress"), ("prod-api-01", "nat-gw-prod", "Egress"), ("prod-api-02", "nat-gw-prod", "Egress"),
+    ("nat-gw-prod", "internet", "Outbound"),
 ]
 
 

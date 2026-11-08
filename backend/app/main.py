@@ -17,7 +17,7 @@ from . import __version__
 from .config import Settings, get_settings
 from .database import Database
 from .metrics import install_metrics
-from .repository import DatasetStore, seed_simulation, seed_users
+from .repository import DatasetStore, reseed_if_fleet_changed, seed_simulation, seed_users
 from .routers import alerts, auth, finops, insights, operations
 from .security import SlidingWindowLimiter
 from .webapp import install_webapp
@@ -67,6 +67,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             with app.state.database.session_factory() as db:
                 seed_users(db, settings)
                 if settings.seed_on_startup:
+                    reseed_if_fleet_changed(db, settings)
                     seed_simulation(db, settings)
         yield
         app.state.database.engine.dispose()

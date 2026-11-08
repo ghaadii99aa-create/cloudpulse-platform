@@ -31,7 +31,7 @@ def test_platform_gauges_are_exposed_and_labeled_simulated(client):
     for name in ("fleet_health_score", "cost_last_30d_usd", "cost_month_end_estimate_usd", "cost_potential_savings_monthly_usd"):
         assert f'cloudpulse_{name}{{data_source="SIMULATED"}}' in body
     assert 'cloudpulse_active_alerts{data_source="SIMULATED",severity="critical"}' in body
-    assert 'cloudpulse_resource_utilization_percent{data_source="SIMULATED",metric="cpu",resource="web-prod-1"}' in body
+    assert 'cloudpulse_resource_utilization_percent{data_source="SIMULATED",metric="cpu",resource="prod-web-01"}' in body
 
 
 def test_requests_are_counted_by_route_template_not_raw_path(client):

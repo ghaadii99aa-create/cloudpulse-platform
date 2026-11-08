@@ -78,8 +78,8 @@ def test_lower_thresholds_raise_more_warnings(dataset, settings):
 
 
 def test_resource_series_resolution(dataset):
-    hourly = insights.resource_series(dataset, "web-prod-1", hours=48)
-    daily = insights.resource_series(dataset, "web-prod-1", hours=24 * 7, resolution="day")
+    hourly = insights.resource_series(dataset, "prod-web-01", hours=48)
+    daily = insights.resource_series(dataset, "prod-web-01", hours=24 * 7, resolution="day")
     assert len(hourly) == 48 and 7 <= len(daily) <= 8
 
 
@@ -120,11 +120,11 @@ def test_cost_forecast_shape(dataset):
 
 
 def test_utilization_forecast_validation(dataset):
-    assert len(insights.utilization_forecast(dataset, "orders-db", "disk_pct", 7)["forecast"]) == 7
+    assert len(insights.utilization_forecast(dataset, "rds-orders-primary", "disk_pct", 7)["forecast"]) == 7
     with pytest.raises(LookupError):
         insights.utilization_forecast(dataset, "nope")
     with pytest.raises(ValueError):
-        insights.utilization_forecast(dataset, "orders-db", "network_mbps")
+        insights.utilization_forecast(dataset, "rds-orders-primary", "network_mbps")
 
 
 # ---------- alerts ----------
@@ -133,8 +133,8 @@ def test_alert_rules_find_planted_and_threshold_conditions(dataset, settings):
     found = {a["fingerprint"]: a for a in alert_rules.evaluate(dataset, settings)}
     assert len(found) == len(alert_rules.evaluate(dataset, settings))  # fingerprints unique
     cost = [a for a in found.values() if a["category"] == "cost"]
-    assert {a["resource"] for a in cost} == {"batch-worker-1"}  # nat-gateway spike is older than 30 days
-    assert "capacity:orders-db:disk_pct" in found
+    assert {a["resource"] for a in cost} == {"prod-batch-01"}  # nat-gw-prod spike is older than 30 days
+    assert "capacity:rds-orders-primary:disk_pct" in found
     for alert in found.values():
         if alert["category"] in {"cpu", "memory"}:
             assert alert["value"] >= alert["threshold"]
@@ -142,13 +142,13 @@ def test_alert_rules_find_planted_and_threshold_conditions(dataset, settings):
 
 def test_availability_alert_when_health_check_fails(dataset, settings):
     metrics = dataset.metrics.copy()
-    last = metrics.index[(metrics["resource"] == "web-prod-2") & (metrics["timestamp"] == metrics["timestamp"].max())]
+    last = metrics.index[(metrics["resource"] == "prod-web-02") & (metrics["timestamp"] == metrics["timestamp"].max())]
     metrics.loc[last, "available"] = 0
     broken = type(dataset).from_frames(dataset.resources, dataset.billing, metrics)
-    alert = next(a for a in alert_rules.evaluate(broken, settings) if a["fingerprint"] == "availability:web-prod-2")
+    alert = next(a for a in alert_rules.evaluate(broken, settings) if a["fingerprint"] == "availability:prod-web-02")
     assert alert["severity"] == "critical"
     status = {r["name"]: r for r in insights.resource_status(broken, settings)}
-    assert status["web-prod-2"]["status"] == "critical"
+    assert status["prod-web-02"]["status"] == "critical"
 
 
 # ---------- kubernetes & topology ----------
@@ -192,7 +192,7 @@ def test_topology_edges_reference_existing_nodes(dataset, settings):
     graph = topology.build_topology(dataset, settings)
     ids = {n["id"] for n in graph["nodes"]}
     assert all(e["source"] in ids and e["target"] in ids for e in graph["edges"])
-    orphan = next(n for n in graph["nodes"] if n["id"] == "orphan-volume-07")
+    orphan = next(n for n in graph["nodes"] if n["id"] == "ebs-vol-0a7f3c91")
     assert orphan["status"] == "orphaned" and orphan["isolated"]
 
 
@@ -229,13 +229,13 @@ def test_ai_mode_sends_facts_and_returns_model_text(dataset, settings):
 
     def post(url, json, timeout, headers):
         captured.update(url=url, payload=json, headers=headers)
-        return _FakeResponse({"content": [{"type": "text", "text": "Downsize analytics-xl."}]})
+        return _FakeResponse({"content": [{"type": "text", "text": "Downsize prod-etl-01."}]})
 
     configured = replace(settings, anthropic_api_key="sk-test")
     out = advisor.advise(dataset, configured, [], "What should we fix?", post=post)
-    assert out["mode"] == "ai" and out["answer"] == "Downsize analytics-xl." and out["model"] == configured.anthropic_model
+    assert out["mode"] == "ai" and out["answer"] == "Downsize prod-etl-01." and out["model"] == configured.anthropic_model
     assert captured["headers"]["x-api-key"] == "sk-test"
-    assert "analytics-xl" in captured["payload"]["messages"][0]["content"]
+    assert "prod-etl-01" in captured["payload"]["messages"][0]["content"]
 
 
 def test_ai_failure_falls_back_with_notice(dataset, settings):
@@ -270,4 +270,4 @@ def test_pdf_report_is_valid_and_labeled(dataset, settings):
     pypdf = pytest.importorskip("pypdf")
     import io
     text = "".join(page.extract_text() for page in pypdf.PdfReader(io.BytesIO(pdf)).pages)
-    assert "Simulated data" in text and "Recommendations" in text and "analytics-xl" in text
+    assert "Simulated data" in text and "Recommendations" in text and "prod-etl-01" in text

@@ -51,7 +51,7 @@ forward grafana 13000 3000
 
 [ "$(curl -s -o /dev/null -w '%{http_code}' localhost:18080/)" = 200 ] || fail "dashboard page"
 curl -sI localhost:18080/ | grep -qi '^content-security-policy:' || fail "CSP header"
-[ "$(curl -s -o /dev/null -w '%{http_code}' localhost:18080/infrastructure/orders-db)" = 200 ] || fail "SPA deep link"
+[ "$(curl -s -o /dev/null -w '%{http_code}' localhost:18080/infrastructure/rds-orders-primary)" = 200 ] || fail "SPA deep link"
 pass "dashboard served with security headers and deep links"
 
 if curl -s localhost:18080/metrics | grep -q cloudpulse_http; then fail "/metrics is exposed through the web tier"; fi

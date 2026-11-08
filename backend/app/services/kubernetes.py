@@ -1,6 +1,6 @@
 """Kubernetes cluster view.
 
-`simulated` mode derives node load from the simulated k8s-node-* telemetry and spreads it over a
+`simulated` mode derives node load from the simulated k8s-prod-node-* telemetry and spreads it over a
 fixed workload spec. `live` mode reads a real cluster through the official Python client when it
 is installed and a kubeconfig or in-cluster service account is available; otherwise it falls back
 to simulated mode and says why.

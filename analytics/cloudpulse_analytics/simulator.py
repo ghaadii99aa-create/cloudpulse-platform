@@ -15,25 +15,25 @@ DATA_SOURCE_LABEL = "SIMULATED"
 
 # name, service, kind, environment, hourly_usd, cpu_base, mem_base, always_on
 _FLEET = [
-    ("web-prod-1", "Compute", "vm", "prod", 0.192, 58, 62, True),
-    ("web-prod-2", "Compute", "vm", "prod", 0.192, 55, 60, True),
-    ("api-prod-1", "Compute", "vm", "prod", 0.384, 64, 70, True),
-    ("api-prod-2", "Compute", "vm", "prod", 0.384, 61, 68, True),
-    ("batch-worker-1", "Compute", "vm", "prod", 0.768, 34, 41, True),
-    ("analytics-xl", "Compute", "vm", "prod", 1.536, 6, 14, True),
-    ("staging-app-1", "Compute", "vm", "staging", 0.192, 4, 11, True),
-    ("legacy-ftp", "Compute", "vm", "dev", 0.096, 1, 7, True),
-    ("orders-db", "Database", "database", "prod", 0.712, 47, 74, True),
-    ("orders-db-replica", "Database", "database", "prod", 0.712, 12, 38, True),
-    ("cache-prod", "Cache", "cache", "prod", 0.312, 28, 71, True),
-    ("k8s-node-1", "Kubernetes", "node", "prod", 0.384, 66, 72, True),
-    ("k8s-node-2", "Kubernetes", "node", "prod", 0.384, 63, 69, True),
-    ("k8s-node-3", "Kubernetes", "node", "prod", 0.384, 59, 66, True),
-    ("assets-bucket", "Storage", "storage", "prod", 0.145, 0, 0, True),
-    ("backups-bucket", "Storage", "storage", "prod", 0.210, 0, 0, True),
-    ("orphan-volume-07", "Storage", "volume", "dev", 0.064, 0, 0, False),
-    ("edge-lb", "Network", "load_balancer", "prod", 0.089, 0, 0, True),
-    ("nat-gateway", "Network", "gateway", "prod", 0.135, 0, 0, True),
+    ("prod-web-01", "Compute", "vm", "prod", 0.192, 58, 62, True),
+    ("prod-web-02", "Compute", "vm", "prod", 0.192, 55, 60, True),
+    ("prod-api-01", "Compute", "vm", "prod", 0.384, 64, 70, True),
+    ("prod-api-02", "Compute", "vm", "prod", 0.384, 61, 68, True),
+    ("prod-batch-01", "Compute", "vm", "prod", 0.768, 34, 41, True),
+    ("prod-etl-01", "Compute", "vm", "prod", 1.536, 6, 14, True),
+    ("staging-app-01", "Compute", "vm", "staging", 0.192, 4, 11, True),
+    ("dev-sftp-legacy", "Compute", "vm", "dev", 0.096, 1, 7, True),
+    ("rds-orders-primary", "Database", "database", "prod", 0.712, 47, 74, True),
+    ("rds-orders-replica", "Database", "database", "prod", 0.712, 12, 38, True),
+    ("redis-sessions-prod", "Cache", "cache", "prod", 0.312, 28, 71, True),
+    ("k8s-prod-node-01", "Kubernetes", "node", "prod", 0.384, 66, 72, True),
+    ("k8s-prod-node-02", "Kubernetes", "node", "prod", 0.384, 63, 69, True),
+    ("k8s-prod-node-03", "Kubernetes", "node", "prod", 0.384, 59, 66, True),
+    ("s3-assets-prod", "Storage", "storage", "prod", 0.145, 0, 0, True),
+    ("s3-backups-prod", "Storage", "storage", "prod", 0.210, 0, 0, True),
+    ("ebs-vol-0a7f3c91", "Storage", "volume", "dev", 0.064, 0, 0, False),
+    ("alb-public-prod", "Network", "load_balancer", "prod", 0.089, 0, 0, True),
+    ("nat-gw-prod", "Network", "gateway", "prod", 0.135, 0, 0, True),
 ]
 _FLEET_COLUMNS = ["resource", "service", "kind", "environment", "hourly_usd", "cpu_base", "mem_base", "attached"]
 
@@ -45,7 +45,7 @@ class SimulationConfig:
     end: str = "2026-11-01"
     monthly_growth: float = 0.03
     # (days before end, resource, cost multiplier, duration in days)
-    cost_incidents: tuple = field(default_factory=lambda: ((18, "batch-worker-1", 3.2, 2), (47, "nat-gateway", 4.5, 1)))
+    cost_incidents: tuple = field(default_factory=lambda: ((18, "prod-batch-01", 3.2, 2), (47, "nat-gw-prod", 4.5, 1)))
 
 
 def generate_resources() -> pd.DataFrame:
