@@ -1,6 +1,6 @@
-# promtool test rules infrastructure/monitoring/rules/cloudpulse.test.yml
+# Kept outside rules/ because Prometheus loads every .yml in that directory.  Run from this directory: promtool test rules rules.test.yml
 rule_files:
-  - cloudpulse.yml
+  - rules/cloudpulse.yml
 evaluation_interval: 1m
 tests:
   - interval: 1m

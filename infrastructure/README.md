@@ -43,8 +43,9 @@ Prometheus scrapes each API replica. Grafana opens with the **CloudPulse overvie
 `data_source` label, and the first dashboard panel shows it, so simulated figures are not mistaken for real ones.
 
 ```bash
-promtool check rules infrastructure/monitoring/rules/cloudpulse.yml
-promtool test rules infrastructure/monitoring/rules/cloudpulse.test.yml
+cd infrastructure/monitoring
+promtool check rules rules/cloudpulse.yml
+promtool test rules rules.test.yml
 ```
 
 ## Terraform (AWS)

@@ -134,7 +134,7 @@ jobs:
           promtool() { docker run --rm -v "$PWD/infrastructure/monitoring:/m:ro" -w /m --entrypoint promtool prom/prometheus:v2.55.1 "$@"; }
           promtool check rules rules/cloudpulse.yml
           promtool check config --syntax-only prometheus.k8s.yml prometheus.compose.yml
-          cd infrastructure/monitoring/rules && docker run --rm -v "$PWD:/r:ro" -w /r --entrypoint promtool prom/prometheus:v2.55.1 test rules cloudpulse.test.yml
+          promtool test rules rules.test.yml
 
   terraform:
     runs-on: ubuntu-latest
