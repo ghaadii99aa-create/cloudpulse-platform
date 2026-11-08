@@ -66,6 +66,7 @@ class Settings:
     kubernetes_mode: str = "simulated"
     aws_cost_role_arn: str | None = None
     azure_subscription_id: str | None = None
+    metrics_token: str | None = field(default=None, repr=False)
 
     @property
     def is_production(self) -> bool:
@@ -108,4 +109,5 @@ def get_settings() -> Settings:
         kubernetes_mode=os.getenv("KUBERNETES_MODE", "simulated"),
         aws_cost_role_arn=os.getenv("AWS_COST_ROLE_ARN") or None,
         azure_subscription_id=os.getenv("AZURE_SUBSCRIPTION_ID") or None,
+        metrics_token=os.getenv("METRICS_TOKEN") or None,
     )

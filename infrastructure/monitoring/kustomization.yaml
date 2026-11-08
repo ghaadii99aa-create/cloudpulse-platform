@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cloudpulse
+resources:
+  - prometheus.yaml
+  - grafana.yaml
+generatorOptions:
+  disableNameSuffixHash: false
+configMapGenerator:
+  - name: prometheus-config
+    files:
+      - prometheus.yml=prometheus.k8s.yml
+  - name: prometheus-rules
+    files:
+      - rules/cloudpulse.yml
+  - name: grafana-datasources
+    files:
+      - grafana/provisioning/datasources/prometheus.yml
+  - name: grafana-dashboard-provider
+    files:
+      - grafana/provisioning/dashboards/cloudpulse.yml
+  - name: grafana-dashboards
+    files:
+      - grafana/dashboards/cloudpulse-overview.json

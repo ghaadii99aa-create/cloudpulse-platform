@@ -66,7 +66,8 @@ five minutes return `429`.
 | GET | `/system/info` | viewer | Version, data sources, advisor mode, integration status |
 | POST | `/system/reset-simulation` | admin | Wipe and regenerate simulated data |
 
-Outside the prefix: `GET /healthz` (liveness) and `GET /readyz` (database reachable).
+Outside the prefix: `GET /healthz` (liveness), `GET /readyz` (database reachable) and `GET /metrics` (Prometheus format;
+requires `Authorization: Bearer <METRICS_TOKEN>` when that variable is set). The web container does not proxy these three.
 
 ## Errors
 

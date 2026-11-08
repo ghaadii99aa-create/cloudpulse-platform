@@ -1,0 +1,6 @@
+region             = "me-central-1"
+environment        = "demo"
+node_instance_type = "t3.medium"
+node_count         = 2
+# Your own public address, for example ["203.0.113.10/32"]. Empty keeps the Kubernetes API private.
+api_public_cidrs = []

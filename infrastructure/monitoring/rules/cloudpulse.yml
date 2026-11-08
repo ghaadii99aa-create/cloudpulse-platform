@@ -1,0 +1,50 @@
+groups:
+  - name: cloudpulse-api
+    rules:
+      - alert: CloudPulseApiDown
+        expr: up{job="cloudpulse-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API instance {{ $labels.instance }} is not responding to scrapes"
+      - alert: CloudPulseHighErrorRate
+        expr: |
+          sum(rate(cloudpulse_http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(cloudpulse_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "More than 5% of API requests are failing"
+      - alert: CloudPulseSlowRequests
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(cloudpulse_http_request_duration_seconds_bucket[5m]))) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API p95 latency has been above 2 seconds for 10 minutes"
+      - alert: CloudPulseDataUnavailable
+        expr: cloudpulse_data_available == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "The API on {{ $labels.instance }} cannot load its dataset"
+  - name: cloudpulse-fleet
+    rules:
+      - alert: CloudPulseFleetHealthLow
+        expr: cloudpulse_fleet_health_score < 70
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Fleet health score is {{ $value }} (data source {{ $labels.data_source }})"
+      - alert: CloudPulseFleetAvailabilityLow
+        expr: cloudpulse_fleet_availability_24h_percent < 99
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "24-hour availability is {{ $value }}% (data source {{ $labels.data_source }})"

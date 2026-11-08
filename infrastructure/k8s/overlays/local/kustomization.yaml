@@ -1,0 +1,10 @@
+# Local cluster (kind): images are built and loaded by infrastructure/scripts/verify-kind.sh
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cloudpulse
+resources:
+  - ../../base
+  - ../../../monitoring
+images:
+  - { name: cloudpulse-api, newTag: local }
+  - { name: cloudpulse-web, newTag: local }

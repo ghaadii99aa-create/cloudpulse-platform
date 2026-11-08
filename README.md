@@ -14,9 +14,9 @@ account: a deterministic simulated environment stands in for AWS or Azure, and e
 | Phase | Scope | Status |
 |---|---|---|
 | 1. Analytics core | Simulated fleet, billing and telemetry; forecasting, anomaly detection, capacity, FinOps rules | Done, 21 tests |
-| 2. Backend API | FastAPI, PostgreSQL, JWT auth and roles, alerts, advisor, PDF reports, CI | Done, 56 tests on PostgreSQL and SQLite |
+| 2. Backend API | FastAPI, PostgreSQL, JWT auth and roles, alerts, advisor, PDF reports, CI | Done, 61 tests on PostgreSQL and SQLite |
 | 3. Frontend | React, TypeScript, Tailwind dashboard with dark and light themes | Done, 26 unit and 28 end-to-end tests |
-| 4. Platform | Kubernetes manifests, Terraform, Prometheus and Grafana | Planned |
+| 4. Platform | Docker Compose stack, Kubernetes manifests, Terraform for AWS, Prometheus and Grafana | Done, deployed to a kind cluster in CI |
 | 5. Deployment | Hosted API, frontend and database with a public demo | Planned |
 
 ## Screens
@@ -83,6 +83,8 @@ that have elapsed, so the demo always shows current data. Analytics run once per
 - **Dashboard:** executive overview, infrastructure with simulated live readings, per-resource history, costs, forecasts,
   Kubernetes, interactive service map, alerts, advisor, PDF download and user administration, in dark and light themes
   and at phone width. Every page shows the `data_source` its response reported, and controls follow the signed-in role.
+- **Observability:** `/metrics` with request telemetry and platform figures labeled by `data_source`, six Prometheus
+  alert rules with unit tests, and a provisioned Grafana dashboard.
 - **Security:** PBKDF2-SHA256 (600k iterations), JWT, three roles, login rate limiting, timing-safe login,
   input validation, a consistent error envelope, secrets only from environment variables.
 
@@ -92,12 +94,14 @@ Requirements: Docker, or Python 3.11+.
 
 ```bash
 cp .env.example .env          # set JWT_SECRET, POSTGRES_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD
-docker compose up --build     # PostgreSQL + API on http://localhost:8000
+docker compose up --build     # dashboard on http://localhost:8080, API docs on http://localhost:8000/api/docs
 ```
 
-Then open http://localhost:8000/api/docs and authorize with the admin account.
+Add Prometheus (port 9090) and Grafana (port 3000) by setting `GRAFANA_ADMIN_PASSWORD` and running
+`docker compose --profile monitoring up --build`. See [infrastructure/README.md](infrastructure/README.md) for
+Kubernetes and Terraform.
 
-Start the dashboard (Node 20.19 or later) on http://localhost:5173. It proxies `/api` to port 8000:
+To work on the dashboard with hot reload (Node 20.19 or later), run it on http://localhost:5173. It proxies `/api` to port 8000:
 
 ```bash
 cd frontend && npm ci && npm run dev
@@ -118,14 +122,16 @@ With no `DATABASE_URL` the API uses a local SQLite file, which is fine for devel
 
 ```bash
 cd analytics && python -m pytest        # 21 tests
-cd backend && python -m pytest          # 56 tests (SQLite); set TEST_DATABASE_URL for PostgreSQL
+cd backend && python -m pytest          # 61 tests (SQLite); set TEST_DATABASE_URL for PostgreSQL
 cd frontend && npm test                 # 26 unit tests
 cd frontend && npm run build && npm run test:e2e   # 28 browser tests; needs the API and E2E_* accounts, see below
 ```
 
 GitHub Actions runs lint, the analytics suite, the backend suite against both PostgreSQL 16 and SQLite, then builds
 the frontend (lint, types, unit tests, build, browser tests against the real API), then builds the Docker image and
-smoke-tests it (login, dashboard, PDF download).
+smoke-tests it (login, dashboard, PDF download). Platform jobs validate the manifests and alert rules, run Terraform
+checks with a mocked provider, start the whole Compose stack, and deploy to a real kind cluster where a script checks
+login, both replicas, Prometheus, Grafana, replica replacement, database persistence and NetworkPolicy enforcement.
 
 The end-to-end suite drives the production build in Chromium at desktop and phone sizes against a running API, in both
 themes, with a WCAG 2 A/AA scan of every page. Set `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`, `E2E_VIEWER_EMAIL` and
@@ -138,6 +144,7 @@ analytics/        cloudpulse_analytics package and its tests
 backend/          FastAPI service (app/), tests, Dockerfile
 frontend/         React dashboard (src/), unit tests, Playwright tests (e2e/)
 docs/screenshots  Images used in this README
+infrastructure/   Kubernetes manifests, Terraform, Prometheus rules, Grafana dashboards, cluster verification script
 docs/API.md       endpoint reference, roles, error format, methods behind every number
 .github/workflows CI pipeline
 docker-compose.yml
