@@ -1,8 +1,8 @@
 import { Activity, Moon, Sun } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui';
-import { ApiError } from '../lib/api';
+import { ApiError, signInOptions } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { toggleTheme, useTheme } from '../lib/theme';
 
@@ -19,7 +19,7 @@ function loginMessage(error: unknown): string {
 }
 
 export default function Login() {
-  const { user, signIn, notice } = useAuth();
+  const { user, signIn, signInDemo, notice } = useAuth();
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,21 +27,30 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [demo, setDemo] = useState(false);
+
+  useEffect(() => {
+    signInOptions().then((options) => setDemo(options.demo_login)).catch(() => undefined);
+  }, []);
 
   if (user) return <Navigate to="/" replace />;
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  async function run(action: () => Promise<void>) {
     setBusy(true);
     setError(null);
     try {
-      await signIn(email.trim(), password);
+      await action();
       navigate((location.state as { from?: string } | null)?.from ?? '/', { replace: true });
     } catch (e) {
       setError(loginMessage(e));
     } finally {
       setBusy(false);
     }
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    void run(() => signIn(email.trim(), password));
   }
 
   return (
@@ -61,8 +70,14 @@ export default function Login() {
             <input className={input} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </label>
           {error && <p role="alert" className="text-crit">{error}</p>}
-          <Button type="submit" variant="primary" disabled={busy} className="min-h-11 w-full">{busy ? 'Signing in' : 'Sign in'}</Button>
+          <Button type="submit" variant="primary" disabled={busy} className="min-h-11 w-full">Sign in</Button>
         </form>
+        {demo && (
+          <div className="mt-6 border-t border-line pt-5">
+            <Button disabled={busy} className="min-h-11 w-full" onClick={() => void run(signInDemo)}>View the demo</Button>
+            <p className="mt-2 text-sm text-muted">Read-only access to simulated data. No account needed.</p>
+          </div>
+        )}
       </div>
     </div>
   );

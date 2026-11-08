@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, getToken, login as loginRequest, setExpiredHandler, setToken } from './api';
+import { api, demoLogin, getToken, login as loginRequest, setExpiredHandler, setToken } from './api';
+import type { LoginResponse } from './types';
 import type { Role, User } from './types';
 
 const RANK: Record<Role, number> = { viewer: 0, engineer: 1, admin: 2 };
@@ -10,6 +11,7 @@ interface AuthValue {
   restoring: boolean;
   notice: string | null;
   signIn: (email: string, password: string) => Promise<void>;
+  signInDemo: () => Promise<void>;
   signOut: () => void;
   can: (role: Role) => boolean;
 }
@@ -44,12 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setRestoring(false));
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const session = await loginRequest(email, password);
+  const begin = useCallback((session: LoginResponse) => {
     setToken(session.access_token);
     setNotice(null);
     setUser(session.user);
   }, []);
+  const signIn = useCallback(async (email: string, password: string) => begin(await loginRequest(email, password)), [begin]);
+  const signInDemo = useCallback(async () => begin(await demoLogin()), [begin]);
 
   const value = useMemo<AuthValue>(
     () => ({
@@ -57,13 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       restoring,
       notice,
       signIn,
+      signInDemo,
       signOut: () => {
         setNotice(null);
         clear();
       },
       can: (role) => (user ? RANK[user.role] >= RANK[role] : false),
     }),
-    [user, restoring, notice, signIn, clear],
+    [user, restoring, notice, signIn, signInDemo, clear],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

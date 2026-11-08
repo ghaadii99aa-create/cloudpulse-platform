@@ -43,6 +43,28 @@ def token(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: Ses
     return _authenticate(request, db, settings, form.username, form.password)
 
 
+def _demo_user(db: Session, settings: Settings) -> User | None:
+    """The demo button only ever signs in as a read-only account."""
+    if not settings.demo_login_enabled or not settings.demo_user_email:
+        return None
+    user = db.scalar(select(User).where(User.email == settings.demo_user_email.lower()))
+    return user if user is not None and user.is_active and user.role == "viewer" else None
+
+
+@router.get("/auth/options", summary="Sign-in options offered by this deployment")
+def options(db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+    return {"demo_login": _demo_user(db, settings) is not None}
+
+
+@router.post("/auth/demo", response_model=TokenResponse, summary="Sign in to the read-only demo account, when this deployment enables it")
+def demo(db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+    user = _demo_user(db, settings)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "The demo account is not enabled")
+    token_value, expires = create_access_token(user.id, user.role, settings.jwt_secret, settings.jwt_expire_minutes)
+    return TokenResponse(access_token=token_value, expires_in=expires, user=UserOut.model_validate(user))
+
+
 @router.get("/auth/me", response_model=UserOut, summary="The authenticated user")
 def me(user: User = Depends(get_current_user)):
     return user

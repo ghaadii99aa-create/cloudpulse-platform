@@ -20,6 +20,7 @@ from .metrics import install_metrics
 from .repository import DatasetStore, seed_simulation, seed_users
 from .routers import alerts, auth, finops, insights, operations
 from .security import SlidingWindowLimiter
+from .webapp import install_webapp
 
 log = logging.getLogger("cloudpulse")
 
@@ -60,6 +61,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        log.info("database backend: %s", app.state.database.engine.dialect.name)  # never log the URL, it holds the password
         with app.state.database.startup_lock():
             app.state.database.create_all()
             with app.state.database.session_factory() as db:
@@ -131,6 +133,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except Exception:
             return _error(503, "unavailable", "database unreachable")
         return {"status": "ready"}
+
+    if settings.web_dist:  # last, because its catch-all route must not shadow the API
+        install_webapp(app, settings.web_dist)
 
     return app
 

@@ -105,11 +105,11 @@ jobs:
       - name: End-to-end tests against the real API
         run: |
           set -euo pipefail
-          export E2E_ADMIN_EMAIL=admin@cloudpulse.test E2E_VIEWER_EMAIL=viewer@cloudpulse.test
+          export E2E_ADMIN_EMAIL=admin@cloudpulse.test E2E_VIEWER_EMAIL=viewer@cloudpulse.test E2E_DEMO=1
           export E2E_ADMIN_PASSWORD="Ci$(openssl rand -hex 16)" E2E_VIEWER_PASSWORD="Ci$(openssl rand -hex 16)"
           (cd ../backend && JWT_SECRET="$(openssl rand -hex 32)" DATABASE_URL=sqlite:////tmp/e2e.db \
             ADMIN_EMAIL="$E2E_ADMIN_EMAIL" ADMIN_PASSWORD="$E2E_ADMIN_PASSWORD" \
-            DEMO_USER_EMAIL="$E2E_VIEWER_EMAIL" DEMO_USER_PASSWORD="$E2E_VIEWER_PASSWORD" DEMO_USER_ROLE=viewer \
+            DEMO_USER_EMAIL="$E2E_VIEWER_EMAIL" DEMO_USER_PASSWORD="$E2E_VIEWER_PASSWORD" DEMO_USER_ROLE=viewer DEMO_LOGIN_ENABLED=true \
             nohup uvicorn app.main:app --port 8000 > /tmp/api.log 2>&1 &)
           for i in $(seq 1 60); do curl -fsS localhost:8000/readyz && break || sleep 2; done
           npm run test:e2e
@@ -221,3 +221,14 @@ jobs:
       - name: Container logs
         if: always()
         run: docker logs api || true
+      - name: Build and smoke-test the single-service demo image
+        run: |
+          set -euo pipefail
+          docker build -f Dockerfile.render -t cloudpulse-demo:ci .
+          docker run -d --name demo -p 8001:8000 -e ENVIRONMENT=production -e JWT_SECRET="$(openssl rand -hex 32)" \
+            -e DATABASE_URL=sqlite:////tmp/demo.db -e METRICS_TOKEN="$(openssl rand -hex 16)" cloudpulse-demo:ci
+          for i in $(seq 1 40); do curl -fsS localhost:8001/readyz && break || sleep 2; done
+          curl -fsS localhost:8001/costs | grep -q '<div id="root">'
+          curl -fsSI localhost:8001/ | grep -qi content-security-policy
+          test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8001/metrics)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8001/api/v1/nope)" = 404

@@ -7,6 +7,8 @@ risks, raises alerts, and explains it all through an AI Cloud Advisor. It runs e
 account: a deterministic simulated environment stands in for AWS or Azure, and every response is labeled with its
 `data_source` so simulated figures are never presented as real ones.
 
+**Live demo:** https://cloudpulse-wx5v.onrender.com (choose **View the demo**; read-only, simulated data. The free host can take about a minute to wake.)
+
 [![CI](https://github.com/ghaadii99aa-create/cloudpulse-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/ghaadii99aa-create/cloudpulse-platform/actions/workflows/ci.yml)
 
 ## Project status
@@ -17,7 +19,7 @@ account: a deterministic simulated environment stands in for AWS or Azure, and e
 | 2. Backend API | FastAPI, PostgreSQL, JWT auth and roles, alerts, advisor, PDF reports, CI | Done, 61 tests on PostgreSQL and SQLite |
 | 3. Frontend | React, TypeScript, Tailwind dashboard with dark and light themes | Done, 26 unit and 28 end-to-end tests |
 | 4. Platform | Docker Compose stack, Kubernetes manifests, Terraform for AWS, Prometheus and Grafana | Done, deployed to a kind cluster in CI |
-| 5. Deployment | Hosted API, frontend and database with a public demo | Planned |
+| 5. Deployment | Hosted API, frontend and database with a public demo | Done, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 
 ## Screens
 

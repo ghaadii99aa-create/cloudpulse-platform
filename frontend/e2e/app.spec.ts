@@ -42,6 +42,15 @@ function watch(page: Page) {
   return problems;
 }
 
+test('the demo button signs in as a read-only viewer', async ({ page }) => {
+  test.skip(!process.env.E2E_DEMO, 'Needs DEMO_LOGIN_ENABLED on the API');
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'View the demo' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: /on track to cost/ })).toBeVisible();
+  await page.goto('/alerts');
+  await expect(page.getByText(/Your viewer role can read alerts/)).toBeVisible();
+});
+
 test('redirects to sign-in and rejects a wrong password', async ({ page }) => {
   await page.goto('/costs');
   await expect(page).toHaveURL(/login/);

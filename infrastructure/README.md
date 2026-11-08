@@ -33,6 +33,7 @@ Design notes:
 - Every pod runs under the `restricted` Pod Security profile: non-root, read-only root filesystem, no capabilities.
 - API replicas share PostgreSQL. Advisory locks make startup seeding, simulation updates and alert sync safe to run from
   several replicas. Login and advisor rate limits are counted per replica.
+- API pods wait briefly before shutting down, so requests already routed to a replacing replica still complete.
 - The web tier proxies only `/api/`, and a NetworkPolicy limits `/metrics` to Prometheus.
 - PostgreSQL runs in the cluster for the demo. The Terraform stack uses RDS instead.
 - The manifests set no AWS or Azure credentials. The simulated environment needs none.
