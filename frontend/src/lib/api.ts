@@ -76,6 +76,9 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
 export const login = (email: string, password: string) =>
   api<LoginResponse>('/auth/login', { method: 'POST', body: { email, password } });
 
+export const demoLogin = () => api<LoginResponse>('/auth/demo', { method: 'POST' });
+export const signInOptions = () => api<{ demo_login: boolean }>('/auth/options');
+
 export async function fetchBlob(path: string): Promise<Blob> {
   return (await send(path)).blob();
 }

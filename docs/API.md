@@ -35,6 +35,8 @@ five minutes return `429`.
 |---|---|---|---|
 | POST | `/auth/login` | public | JSON login |
 | POST | `/auth/token` | public | OAuth2 password form (Swagger) |
+| GET | `/auth/options` | public | Sign-in options for this deployment |
+| POST | `/auth/demo` | public | Token for the read-only demo account; `404` unless `DEMO_LOGIN_ENABLED` is on |
 | GET | `/auth/me` | any | Current user |
 | GET / POST | `/users` | admin | List / create users |
 | PATCH | `/users/{id}` | admin | Change name, role, active flag |

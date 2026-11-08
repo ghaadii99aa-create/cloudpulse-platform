@@ -67,6 +67,8 @@ class Settings:
     aws_cost_role_arn: str | None = None
     azure_subscription_id: str | None = None
     metrics_token: str | None = field(default=None, repr=False)
+    demo_login_enabled: bool = False
+    web_dist: str | None = None
 
     @property
     def is_production(self) -> bool:
@@ -110,4 +112,6 @@ def get_settings() -> Settings:
         aws_cost_role_arn=os.getenv("AWS_COST_ROLE_ARN") or None,
         azure_subscription_id=os.getenv("AZURE_SUBSCRIPTION_ID") or None,
         metrics_token=os.getenv("METRICS_TOKEN") or None,
+        demo_login_enabled=_bool("DEMO_LOGIN_ENABLED", False),
+        web_dist=os.getenv("WEB_DIST") or None,
     )
