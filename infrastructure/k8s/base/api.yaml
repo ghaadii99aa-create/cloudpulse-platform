@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels: { app.kubernetes.io/name: cloudpulse-api, app.kubernetes.io/part-of: cloudpulse }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app.kubernetes.io/name: cloudpulse-api }
+  strategy:
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: cloudpulse-api, app.kubernetes.io/part-of: cloudpulse }
+    spec:
+      automountServiceAccountToken: false
+      securityContext: { runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, seccompProfile: { type: RuntimeDefault } }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app.kubernetes.io/name: cloudpulse-api }
+      containers:
+        - name: api
+          image: cloudpulse-api
+          envFrom:
+            - configMapRef: { name: cloudpulse-config }
+          env:
+            - name: JWT_SECRET
+              valueFrom: { secretKeyRef: { name: cloudpulse-secrets, key: JWT_SECRET } }
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: cloudpulse-secrets, key: DATABASE_URL } }
+            - name: ADMIN_EMAIL
+              valueFrom: { secretKeyRef: { name: cloudpulse-secrets, key: ADMIN_EMAIL } }
+            - name: ADMIN_PASSWORD
+              valueFrom: { secretKeyRef: { name: cloudpulse-secrets, key: ADMIN_PASSWORD } }
+            - name: ANTHROPIC_API_KEY
+              valueFrom: { secretKeyRef: { name: cloudpulse-secrets, key: ANTHROPIC_API_KEY, optional: true } }
+          ports: [{ name: http, containerPort: 8000 }]
+          # Startup includes waiting for the seeding lock and generating the simulated environment.
+          startupProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 5, failureThreshold: 60 }
+          readinessProbe: { httpGet: { path: /readyz, port: http }, periodSeconds: 10, timeoutSeconds: 3 }
+          livenessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 20, timeoutSeconds: 3 }
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { cpu: "1", memory: 1500Mi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: ["ALL"] } }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector: { app.kubernetes.io/name: cloudpulse-api }
+  ports: [{ name: http, port: 8000, targetPort: http }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: api }
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 75 }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: cloudpulse-api }

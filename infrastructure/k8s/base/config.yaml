@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudpulse-config
+data:
+  ENVIRONMENT: production
+  SEED_ON_STARTUP: "true"
+  SIMULATION_DAYS: "120"
+  KUBERNETES_MODE: simulated
+  CORS_ORIGINS: ""

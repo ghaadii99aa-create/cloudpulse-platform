@@ -16,6 +16,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import __version__
 from .config import Settings, get_settings
 from .database import Database
+from .metrics import install_metrics
 from .repository import DatasetStore, seed_simulation, seed_users
 from .routers import alerts, auth, finops, insights, operations
 from .security import SlidingWindowLimiter
@@ -59,11 +60,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        app.state.database.create_all()
-        with app.state.database.session_factory() as db:
-            seed_users(db, settings)
-            if settings.seed_on_startup:
-                seed_simulation(db, settings)
+        with app.state.database.startup_lock():
+            app.state.database.create_all()
+            with app.state.database.session_factory() as db:
+                seed_users(db, settings)
+                if settings.seed_on_startup:
+                    seed_simulation(db, settings)
         yield
         app.state.database.engine.dispose()
 
@@ -110,6 +112,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def unhandled(_: Request, exc: Exception):
         log.exception("unhandled error: %s", exc)
         return _error(500, "internal_error", "An unexpected error occurred")
+
+    install_metrics(app)
 
     prefix = "/api/v1"
     for module in (auth, operations, finops, alerts, insights):

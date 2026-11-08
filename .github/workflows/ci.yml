@@ -119,6 +119,82 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report
 
+  platform-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Kubernetes manifests against the API schemas
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          kubectl kustomize infrastructure/k8s/overlays/local | ./kubeconform -strict -summary -kubernetes-version 1.31.0
+      - name: Check Prometheus configuration and test alert rules
+        run: |
+          set -euo pipefail
+          promtool() { docker run --rm -v "$PWD/infrastructure/monitoring:/m:ro" -w /m --entrypoint promtool prom/prometheus:v2.55.1 "$@"; }
+          promtool check rules rules/cloudpulse.yml
+          promtool check config --syntax-only prometheus.k8s.yml prometheus.compose.yml
+          promtool test rules rules.test.yml
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infrastructure/terraform/aws
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+      - name: Plan tests with a mocked provider (no AWS account, nothing created)
+        run: terraform test
+
+  kubernetes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to a kind cluster and verify behavior
+        run: infrastructure/scripts/verify-kind.sh
+      - name: Cluster state
+        if: always()
+        run: |
+          kubectl -n cloudpulse get pods -o wide || true
+          kubectl -n cloudpulse get events --sort-by=.lastTimestamp | tail -40 || true
+          kubectl -n cloudpulse logs deployment/api --tail=50 || true
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the full stack with monitoring
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          ADMIN_PASSWORD="Ci$(openssl rand -hex 16)"; echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" >> "$GITHUB_ENV"
+          GRAFANA_PASSWORD="$(openssl rand -hex 16)"; echo "GRAFANA_PASSWORD=$GRAFANA_PASSWORD" >> "$GITHUB_ENV"
+          sed -i "s/^ENVIRONMENT=.*/ENVIRONMENT=production/; s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/; s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" .env
+          sed -i "s/^ADMIN_EMAIL=.*/ADMIN_EMAIL=ci@cloudpulse.test/; s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=$ADMIN_PASSWORD/; s/^GRAFANA_ADMIN_PASSWORD=.*/GRAFANA_ADMIN_PASSWORD=$GRAFANA_PASSWORD/" .env
+          docker compose --profile monitoring up -d --build --wait --wait-timeout 300
+      - name: Check the stack through the web container
+        run: |
+          set -euo pipefail
+          curl -fsSI localhost:8080/ | grep -qi content-security-policy
+          TOKEN=$(curl -fsS -X POST localhost:8080/api/v1/auth/login -H 'content-type: application/json' \
+            -d "{\"email\":\"ci@cloudpulse.test\",\"password\":\"$ADMIN_PASSWORD\"}" | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
+          curl -fsS localhost:8080/api/v1/dashboard/executive -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;assert json.load(sys.stdin)["data_source"]=="SIMULATED"'
+          for i in $(seq 1 30); do
+            curl -fsS 'localhost:9090/api/v1/query?query=cloudpulse_fleet_health_score' | grep -q SIMULATED && break || sleep 3
+          done
+          curl -fsS 'localhost:9090/api/v1/query?query=cloudpulse_fleet_health_score' | grep -q SIMULATED
+          curl -fsS -u "admin:$GRAFANA_PASSWORD" localhost:3000/api/dashboards/uid/cloudpulse-overview | grep -q cloudpulse-overview
+      - name: Container logs
+        if: always()
+        run: docker compose --profile monitoring logs --tail=40 || true
+
   docker:
     runs-on: ubuntu-latest
     needs: [backend]

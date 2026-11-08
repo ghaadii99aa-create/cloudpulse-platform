@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from cloudpulse_analytics import DATA_SOURCE_LABEL, SimulationConfig, generate_billing, generate_metrics, generate_resources
 
 from .config import Settings
+from .database import lock_data_writes
 from .models import Alert, CostRecord, MetricSample, Resource, User, utcnow
 from .security import hash_password
 from .services import alert_rules
@@ -96,6 +97,7 @@ def advance_simulation(db: Session, settings: Settings, now: pd.Timestamp | None
     if settings.simulation_end:
         return {"metrics_added": 0, "costs_added": 0}
     end = now or now_hour()
+    lock_data_writes(db)
     ids = {name: rid for name, rid in db.execute(select(Resource.name, Resource.id).where(Resource.provider == "simulated")).all()}
     if not ids:
         return {"metrics_added": 0, "costs_added": 0}
@@ -178,6 +180,7 @@ class DatasetStore:
 
 def sync_alerts(db: Session, ds: Dataset, settings: Settings) -> dict:
     candidates = {c["fingerprint"]: c for c in alert_rules.evaluate(ds, settings)}
+    lock_data_writes(db)
     active = {a.fingerprint: a for a in db.scalars(select(Alert).where(Alert.status.in_(_ACTIVE)))}
     resolved_fps = set(db.scalars(select(Alert.fingerprint).where(Alert.status == "resolved",
                                                                    Alert.fingerprint.in_(list(candidates) or [""]))))

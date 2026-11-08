@@ -1,0 +1,15 @@
+# Requires an ingress controller named "nginx". Replace the host and add TLS in the overlay for your environment.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloudpulse
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cloudpulse.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: web, port: { name: http } }

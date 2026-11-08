@@ -1,0 +1,39 @@
+# Kept outside rules/ because Prometheus loads every .yml in that directory.  Run from this directory: promtool test rules rules.test.yml
+rule_files:
+  - rules/cloudpulse.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'up{job="cloudpulse-api",instance="a:8000"}'
+        values: "1 1 0 0 0 0"
+      - series: 'cloudpulse_fleet_health_score{data_source="SIMULATED"}'
+        values: "60x20"
+      - series: 'cloudpulse_http_requests_total{status="200",route="/x",method="GET"}'
+        values: "0+90x10"
+      - series: 'cloudpulse_http_requests_total{status="500",route="/x",method="GET"}'
+        values: "0+10x10"
+      - series: 'cloudpulse_data_available{instance="a:8000"}'
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: CloudPulseApiDown
+        exp_alerts:
+          - exp_labels: { severity: critical, job: cloudpulse-api, instance: "a:8000" }
+            exp_annotations: { summary: "API instance a:8000 is not responding to scrapes" }
+      - eval_time: 1m
+        alertname: CloudPulseApiDown
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: CloudPulseFleetHealthLow
+        exp_alerts:
+          - exp_labels: { severity: warning, data_source: SIMULATED }
+            exp_annotations: { summary: "Fleet health score is 60 (data source SIMULATED)" }
+      - eval_time: 9m
+        alertname: CloudPulseHighErrorRate
+        exp_alerts:
+          - exp_labels: { severity: critical }
+            exp_annotations: { summary: "More than 5% of API requests are failing" }
+      - eval_time: 9m
+        alertname: CloudPulseDataUnavailable
+        exp_alerts: []
