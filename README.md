@@ -7,6 +7,8 @@ risks, raises alerts, and explains it all through an AI Cloud Advisor. It runs e
 account: a deterministic simulated environment stands in for AWS or Azure, and every response is labeled with its
 `data_source` so simulated figures are never presented as real ones.
 
+**Live demo:** https://cloudpulse-wx5v.onrender.com (choose **View the demo**; read-only, simulated data. The free host can take about a minute to wake.)
+
 [![CI](https://github.com/ghaadii99aa-create/cloudpulse-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/ghaadii99aa-create/cloudpulse-platform/actions/workflows/ci.yml)
 
 ## Project status
