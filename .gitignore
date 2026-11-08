@@ -1,0 +1,26 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.tfvars
+!*.tfvars.example
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.coverage
+htmlcov/
+# Node
+node_modules/
+dist/
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
