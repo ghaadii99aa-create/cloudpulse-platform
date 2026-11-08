@@ -39,6 +39,10 @@ spec:
               valueFrom: { secretKeyRef: { name: cloudpulse-secrets, key: ANTHROPIC_API_KEY, optional: true } }
           ports: [{ name: http, containerPort: 8000 }]
           # Startup includes waiting for the seeding lock and generating the simulated environment.
+          # Keep serving while the Service stops routing here, so replacing a replica does not drop requests.
+          lifecycle:
+            preStop:
+              exec: { command: ["sleep", "8"] }
           startupProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 5, failureThreshold: 60 }
           readinessProbe: { httpGet: { path: /readyz, port: http }, periodSeconds: 10, timeoutSeconds: 3 }
           livenessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 20, timeoutSeconds: 3 }

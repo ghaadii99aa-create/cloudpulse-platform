@@ -33,7 +33,7 @@ def install_webapp(app: FastAPI, dist: str) -> None:
         raise RuntimeError(f"WEB_DIST has no index.html: {root}")
     app.mount("/assets", _ImmutableAssets(directory=root / "assets"), name="assets")
 
-    @app.get("/{path:path}", include_in_schema=False)
+    @app.api_route("/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
     def spa(path: str):
         if path.startswith(_RESERVED):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Not Found")

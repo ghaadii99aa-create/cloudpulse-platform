@@ -69,6 +69,7 @@ def test_dashboard_routes_serve_the_app_with_security_headers(make_client, dist)
             response = client.get(path)
             assert response.status_code == 200 and 'id="root"' in response.text
             assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+        assert client.head("/costs").status_code == 200
         assert client.get("/favicon.svg").text == "<svg/>"
         assert "immutable" in client.get("/assets/app-abc.js").headers["cache-control"]
 
