@@ -15,16 +15,26 @@ account: a deterministic simulated environment stands in for AWS or Azure, and e
 |---|---|---|
 | 1. Analytics core | Simulated fleet, billing and telemetry; forecasting, anomaly detection, capacity, FinOps rules | Done, 21 tests |
 | 2. Backend API | FastAPI, PostgreSQL, JWT auth and roles, alerts, advisor, PDF reports, CI | Done, 56 tests on PostgreSQL and SQLite |
-| 3. Frontend | React, TypeScript, Tailwind dashboard with dark and light themes | Next |
+| 3. Frontend | React, TypeScript, Tailwind dashboard with dark and light themes | Done, 26 unit and 28 end-to-end tests |
 | 4. Platform | Kubernetes manifests, Terraform, Prometheus and Grafana | Planned |
 | 5. Deployment | Hosted API, frontend and database with a public demo | Planned |
+
+## Screens
+
+![Overview in the dark theme](docs/screenshots/overview-dark.png)
+
+| Service map | Costs | Phone |
+|---|---|---|
+| ![Service map, light theme](docs/screenshots/map-light.png) | ![Costs, light theme](docs/screenshots/costs-light.png) | ![Overview on a phone](docs/screenshots/overview-phone.png) |
+
+All figures in the screenshots come from the simulated environment.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
     subgraph Clients
-        UI[React dashboard<br/>phase 3]
+        UI[React dashboard]
         SW[Swagger UI /api/docs]
     end
     subgraph API[FastAPI service]
@@ -54,7 +64,7 @@ flowchart LR
 The simulation clock advances with real time: once a minute the API appends any hours (metrics) and days (billing)
 that have elapsed, so the demo always shows current data. Analytics run once per data version and are cached.
 
-## Features in the API today
+## Features
 
 - **Infrastructure monitoring:** CPU, memory, disk, network and availability per resource; hourly or daily history;
   health status with reasons; a fleet health score with its formula in the response; simulated live readings.
@@ -70,6 +80,9 @@ that have elapsed, so the demo always shows current data. Analytics run once per
 - **AI Cloud Advisor:** with `ANTHROPIC_API_KEY`, Claude answers from the computed facts only; without it, a
   rule-based writer answers. Every response states `mode: "ai"` or `mode: "fallback"`.
 - **Reports:** executive PDF with KPIs, cost charts, anomalies, forecast, performance table, recommendations, alerts.
+- **Dashboard:** executive overview, infrastructure with simulated live readings, per-resource history, costs, forecasts,
+  Kubernetes, interactive service map, alerts, advisor, PDF download and user administration, in dark and light themes
+  and at phone width. Every page shows the `data_source` its response reported, and controls follow the signed-in role.
 - **Security:** PBKDF2-SHA256 (600k iterations), JWT, three roles, login rate limiting, timing-safe login,
   input validation, a consistent error envelope, secrets only from environment variables.
 
@@ -83,6 +96,12 @@ docker compose up --build     # PostgreSQL + API on http://localhost:8000
 ```
 
 Then open http://localhost:8000/api/docs and authorize with the admin account.
+
+Start the dashboard (Node 20.19 or later) on http://localhost:5173. It proxies `/api` to port 8000:
+
+```bash
+cd frontend && npm ci && npm run dev
+```
 
 Without Docker:
 
@@ -100,16 +119,25 @@ With no `DATABASE_URL` the API uses a local SQLite file, which is fine for devel
 ```bash
 cd analytics && python -m pytest        # 21 tests
 cd backend && python -m pytest          # 56 tests (SQLite); set TEST_DATABASE_URL for PostgreSQL
+cd frontend && npm test                 # 26 unit tests
+cd frontend && npm run build && npm run test:e2e   # 28 browser tests; needs the API and E2E_* accounts, see below
 ```
 
 GitHub Actions runs lint, the analytics suite, the backend suite against both PostgreSQL 16 and SQLite, then builds
-the Docker image and smoke-tests it (login, dashboard, PDF download).
+the frontend (lint, types, unit tests, build, browser tests against the real API), then builds the Docker image and
+smoke-tests it (login, dashboard, PDF download).
+
+The end-to-end suite drives the production build in Chromium at desktop and phone sizes against a running API, in both
+themes, with a WCAG 2 A/AA scan of every page. Set `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`, `E2E_VIEWER_EMAIL` and
+`E2E_VIEWER_PASSWORD` to accounts on a throwaway database, because the suite acknowledges alerts.
 
 ## Repository layout
 
 ```
 analytics/        cloudpulse_analytics package and its tests
 backend/          FastAPI service (app/), tests, Dockerfile
+frontend/         React dashboard (src/), unit tests, Playwright tests (e2e/)
+docs/screenshots  Images used in this README
 docs/API.md       endpoint reference, roles, error format, methods behind every number
 .github/workflows CI pipeline
 docker-compose.yml
