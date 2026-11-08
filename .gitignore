@@ -24,3 +24,8 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+# Local databases
+*.db
+*.sqlite3
+# Test output
+*-results.xml

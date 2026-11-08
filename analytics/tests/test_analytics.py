@@ -2,9 +2,21 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from cloudpulse_analytics import (DATA_SOURCE_LABEL, SimulationConfig, backtest_forecast, cost_breakdown, detect_cost_spikes,
-                                  detect_usage_anomalies, forecast_monthly_cost, forecast_series, generate_billing,
-                                  generate_metrics, generate_resources, predict_capacity, recommend_optimizations)
+from cloudpulse_analytics import (
+    DATA_SOURCE_LABEL,
+    SimulationConfig,
+    backtest_forecast,
+    cost_breakdown,
+    detect_cost_spikes,
+    detect_usage_anomalies,
+    forecast_monthly_cost,
+    forecast_series,
+    generate_billing,
+    generate_metrics,
+    generate_resources,
+    predict_capacity,
+    recommend_optimizations,
+)
 
 
 @pytest.fixture(scope="module")

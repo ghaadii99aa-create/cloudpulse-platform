@@ -1,0 +1,9 @@
+line-length = 150
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["B008", "B905"]  # B008: FastAPI Depends() in defaults
+
+[lint.isort]
+known-first-party = ["app", "cloudpulse_analytics"]
