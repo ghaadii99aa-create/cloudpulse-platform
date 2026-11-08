@@ -130,10 +130,10 @@ def test_infrastructure_endpoints(client, viewer):
     assert len(resources) == 19
     prod = client.get(f"{API}/infrastructure/resources", params={"environment": "prod"}, headers=viewer).json()["items"]
     assert prod and all(r["environment"] == "prod" for r in prod)
-    series = client.get(f"{API}/infrastructure/resources/api-prod-1/metrics", params={"hours": 24}, headers=viewer).json()
+    series = client.get(f"{API}/infrastructure/resources/prod-api-01/metrics", params={"hours": 24}, headers=viewer).json()
     assert len(series["points"]) == 24
     assert client.get(f"{API}/infrastructure/resources/missing/metrics", headers=viewer).status_code == 404
-    assert client.get(f"{API}/infrastructure/resources/api-prod-1/metrics", params={"hours": 0}, headers=viewer).status_code == 422
+    assert client.get(f"{API}/infrastructure/resources/prod-api-01/metrics", params={"hours": 0}, headers=viewer).status_code == 422
     live = client.get(f"{API}/infrastructure/live", headers=viewer).json()
     assert live["data_source"] == "SIMULATED_LIVE" and live["readings"]
     assert client.get(f"{API}/infrastructure/trends", headers=viewer).json()["points"]
@@ -146,7 +146,7 @@ def test_finops_endpoints_reconcile(client, viewer):
     recs = client.get(f"{API}/finops/recommendations", headers=viewer).json()
     assert recs["total_monthly_savings_usd"] == pytest.approx(summary["potential_monthly_savings_usd"], abs=0.01)
     anomalies = client.get(f"{API}/finops/anomalies", headers=viewer).json()["items"]
-    assert {a["resource"] for a in anomalies} == {"batch-worker-1", "nat-gateway"}
+    assert {a["resource"] for a in anomalies} == {"prod-batch-01", "nat-gw-prod"}
     assert client.get(f"{API}/finops/breakdown", params={"by": "owner"}, headers=viewer).status_code == 422
     daily = client.get(f"{API}/finops/daily", params={"days": 30}, headers=viewer).json()
     assert len(daily["points"]) == 30
@@ -155,11 +155,11 @@ def test_finops_endpoints_reconcile(client, viewer):
 def test_analytics_endpoints(client, viewer):
     forecast = client.get(f"{API}/analytics/forecast/cost", params={"horizon": 14}, headers=viewer).json()
     assert len(forecast["forecast"]) == 14 and forecast["backtest"]["mape_pct"] < 8
-    util = client.get(f"{API}/analytics/forecast/utilization", params={"resource": "orders-db", "metric": "disk_pct"}, headers=viewer)
+    util = client.get(f"{API}/analytics/forecast/utilization", params={"resource": "rds-orders-primary", "metric": "disk_pct"}, headers=viewer)
     assert util.status_code == 200 and len(util.json()["forecast"]) == 14
     assert client.get(f"{API}/analytics/forecast/utilization", params={"resource": "ghost"}, headers=viewer).status_code == 404
     capacity = client.get(f"{API}/analytics/capacity", headers=viewer).json()["items"]
-    assert capacity[0]["resource"] == "orders-db" and capacity[0]["metric"] == "disk_pct"
+    assert capacity[0]["resource"] == "rds-orders-primary" and capacity[0]["metric"] == "disk_pct"
     assert client.get(f"{API}/analytics/anomalies/usage", params={"limit": 5}, headers=viewer).status_code == 200
 
 
@@ -209,7 +209,7 @@ def test_alert_acknowledge_and_resolve(client, engineer, viewer):
 
 def test_advisor_fallback(client, viewer):
     out = client.post(f"{API}/advisor/ask", json={"question": "How can we reduce cost?"}, headers=viewer).json()
-    assert out["mode"] == "fallback" and "analytics-xl" in out["answer"]
+    assert out["mode"] == "fallback" and "prod-etl-01" in out["answer"]
     assert client.post(f"{API}/advisor/ask", json={"question": "x"}, headers=viewer).status_code == 422
     assert client.get(f"{API}/advisor/summary", headers=viewer).json()["mode"] == "fallback"
 

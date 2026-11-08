@@ -105,7 +105,7 @@ def test_planted_cost_incidents_are_found_without_false_alarms(billing):
     end = pd.Timestamp("2026-11-01")
     start_batch = end - pd.Timedelta(days=119) + pd.Timedelta(days=120 - 18)
     start_nat = end - pd.Timedelta(days=119) + pd.Timedelta(days=120 - 47)
-    expected = {("batch-worker-1", start_batch), ("batch-worker-1", start_batch + pd.Timedelta(days=1)), ("nat-gateway", start_nat)}
+    expected = {("prod-batch-01", start_batch), ("prod-batch-01", start_batch + pd.Timedelta(days=1)), ("nat-gw-prod", start_nat)}
     assert set(zip(spikes["resource"], spikes["date"])) == expected
 
 
@@ -114,7 +114,7 @@ def test_no_spikes_without_incidents():
 
 
 def test_usage_anomaly_finds_injected_event(metrics):
-    frame = metrics[metrics["resource"] == "web-prod-1"].copy()
+    frame = metrics[metrics["resource"] == "prod-web-01"].copy()
     target = frame.index[300]
     frame.loc[target, ["cpu_pct", "memory_pct", "network_mbps"]] = [99.0, 99.0, 900.0]
     found = detect_usage_anomalies(frame)
@@ -145,10 +145,10 @@ def test_breakdown_rejects_unknown_dimension(billing):
 def test_recommendations_target_waste_only(billing, metrics):
     findings = recommend_optimizations(billing, metrics, generate_resources())
     by_resource = {f["resource"]: f for f in findings}
-    assert by_resource["orphan-volume-07"]["category"] == "orphaned"
-    assert by_resource["legacy-ftp"]["category"] == "idle"
-    assert by_resource["analytics-xl"]["category"] == "rightsizing"
-    assert "api-prod-1" not in by_resource and "orders-db" not in by_resource
+    assert by_resource["ebs-vol-0a7f3c91"]["category"] == "orphaned"
+    assert by_resource["dev-sftp-legacy"]["category"] == "idle"
+    assert by_resource["prod-etl-01"]["category"] == "rightsizing"
+    assert "prod-api-01" not in by_resource and "rds-orders-primary" not in by_resource
 
 
 def test_savings_never_exceed_resource_cost(billing, metrics):

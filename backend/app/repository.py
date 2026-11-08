@@ -92,6 +92,18 @@ def seed_simulation(db: Session, settings: Settings, now: pd.Timestamp | None = 
     return True
 
 
+def reseed_if_fleet_changed(db: Session, settings: Settings) -> bool:
+    """A new simulator fleet can't be appended to old rows, so replace them. Never touches real provider data."""
+    rows = db.execute(select(Resource.name, Resource.provider)).all()
+    if not rows or any(provider != "simulated" for _, provider in rows):
+        return False
+    if {name for name, _ in rows} == set(generate_resources()["resource"]):
+        return False
+    log.info("simulated fleet definition changed: regenerating simulated data")
+    reset_simulation(db, settings)
+    return True
+
+
 def advance_simulation(db: Session, settings: Settings, now: pd.Timestamp | None = None) -> dict:
     """Append simulated hours and days that have elapsed since the last write, so the demo stays current."""
     if settings.simulation_end:

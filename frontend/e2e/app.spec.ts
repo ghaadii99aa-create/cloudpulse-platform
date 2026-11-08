@@ -9,7 +9,7 @@ const API = process.env.E2E_API_URL ?? 'http://localhost:8000';
 const ROUTES: [string, RegExp][] = [
   ['/', /on track to cost/],
   ['/infrastructure', /^Infrastructure$/],
-  ['/infrastructure/orders-db', /^orders-db$/],
+  ['/infrastructure/rds-orders-primary', /^rds-orders-primary$/],
   ['/costs', /^Costs$/],
   ['/forecasts', /^Forecasts$/],
   ['/kubernetes', /^Kubernetes$/],
@@ -115,9 +115,9 @@ test('live readings poll the API', async ({ page }) => {
 test('the map traces dependencies and shows details', async ({ page }) => {
   await signIn(page, admin);
   await page.goto('/map');
-  await page.locator('[data-node="orders-db"]').click();
+  await page.locator('[data-node="rds-orders-primary"]').click();
   await expect(page.getByText('Called by')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Open metrics' })).toHaveAttribute('href', '/infrastructure/orders-db');
+  await expect(page.getByRole('link', { name: 'Open metrics' })).toHaveAttribute('href', '/infrastructure/rds-orders-primary');
 });
 
 test('the advisor answers and states its mode', async ({ page }) => {

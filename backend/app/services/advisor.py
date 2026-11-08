@@ -124,7 +124,7 @@ def fallback_answer(facts: dict, question: str | None) -> str:
             f"There are {len(alerts)} open alerts: " + "; ".join(f"[{a['severity']}] {a['title']}" for a in alerts[:6]) + "."
             if alerts else "There are no open alerts."))
     if "kubernetes" in topics:
-        nodes = [s for s in facts["stressed_resources"] if s["name"].startswith("k8s-node")]
+        nodes = [s for s in facts["stressed_resources"] if s["name"].startswith("k8s-prod-node")]
         parts.append("Kubernetes nodes under pressure: " + ", ".join(f"{n['name']} ({'; '.join(n['reasons'])})" for n in nodes)
                      + ". Add a node or set resource limits so low-priority pods are not evicted." if nodes
                      else "All Kubernetes nodes are within CPU and memory thresholds.")

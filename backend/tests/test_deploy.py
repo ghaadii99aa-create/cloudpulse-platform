@@ -65,7 +65,7 @@ def test_demo_refuses_an_account_with_more_than_read_access(make_client):
 
 def test_dashboard_routes_serve_the_app_with_security_headers(make_client, dist):
     with make_client(web_dist=str(dist)) as client:
-        for path in ("/", "/costs", "/infrastructure/orders-db"):
+        for path in ("/", "/costs", "/infrastructure/rds-orders-primary"):
             response = client.get(path)
             assert response.status_code == 200 and 'id="root"' in response.text
             assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
@@ -82,3 +82,24 @@ def test_catch_all_does_not_shadow_the_api_or_escape_the_directory(make_client, 
         assert "cloudpulse_data_available" in client.get("/metrics").text
         assert "private" not in client.get("/%2e%2e/secret.txt").text
         assert "private" not in client.get("/..%2fsecret.txt").text
+
+
+def test_old_simulated_fleet_is_replaced_on_startup_and_real_data_is_not(make_client):
+    from sqlalchemy import select, update
+
+    from app.models import Resource
+    from app.repository import reseed_if_fleet_changed
+
+    with make_client() as client:
+        settings, database = client.app.state.settings, client.app.state.database
+        with database.session_factory() as db:
+            assert reseed_if_fleet_changed(db, settings) is False
+            db.execute(update(Resource).where(Resource.name == "prod-web-01").values(name="old-name"))
+            db.commit()
+            assert reseed_if_fleet_changed(db, settings) is True
+            names = set(db.scalars(select(Resource.name)))
+            assert "old-name" not in names and "prod-web-01" in names
+            db.execute(update(Resource).where(Resource.name == "prod-web-01").values(name="real-host", provider="aws"))
+            db.commit()
+            assert reseed_if_fleet_changed(db, settings) is False
+            assert "real-host" in set(db.scalars(select(Resource.name)))
